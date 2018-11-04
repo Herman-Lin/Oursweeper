@@ -62,6 +62,10 @@ public class GameState {
 
     public void goLeaderBoard() {this.state = 5;}
 
+    public void leave() {
+        this.sendLeaveRoom();
+    }
+
     // Returns number of seconds before game starts
     public String getCountdownTime() {
         if (System.currentTimeMillis() < this.startTime) {
@@ -77,9 +81,66 @@ public class GameState {
         else return "0.00";
     }
 
-    // TODO: Herman
-    public void sendBoard() {
-        // Package JSON: generated board and systime;
+
+    private void sendMove(int x, int y, boolean flag) {
+
+        // {"ID": (Team Name);
+        //  "Action": flag? "Flag": "Reveal";
+        //  "TeamName": (this.teamName);
+        //  "PlayerName": (Current Player's Name);
+        //  "x": x;
+        //  "y": y;
+        // }
+        // TODO: Herman
+    }
+
+
+    // TODO: Wei
+    // Implement sendScore, sendBoard, sendReady, and sendEnterRoom, and sendLeaveRoom.
+    // Refer to sendMove example above.
+
+    private void sendScore() {
+        // Send JSON to Server:
+        // {"ID": (Team Name);
+        //  "Action": "Score";
+        //  "TeamName": (this.teamName);
+        //  "PlayerName": (Current Player's Name);
+        //  "Score": (Current Player's Score);
+        // }
+    }
+    private void sendBoard() {
+        // Send JSON to Server:
+        // {"ID": (Team Name);
+        //  "Action": "Board";
+        //  "Time": (Local Time in millis);
+        //  "TeamName": (this.teamName);
+        //  "PlayerName": (Current Player's Name);
+        //  "Board": (JSON) this.board;
+        // }
+    }
+    private void sendReady() {
+        // Send JSON to Server:
+        // {"ID": (Team Name);
+        //  "Action": "Ready";
+        //  "TeamName": (this.teamName);
+        //  "PlayerName": (Current Player's Name);
+        // }
+    }
+    private void sendEnterRoom() {
+        // Send JSON to Server:
+        // {"ID": (Team Name);
+        //  "Action": "EnterRoom";
+        //  "TeamName": (this.teamName);
+        //  "PlayerName": (Current Player's Name);
+        //  "PlayerColor": ('A', 'B', 'C', or 'D');
+        // }
+    }
+    private void sendLeaveRoom() {
+        // Send JSON to Server:
+        // {"ID": (Team Name);
+        //  "Action": "LeaveRoom";
+        //  "PlayerColor": ('A', 'B', 'C', or 'D');
+        // }
     }
 
     public String[][] getLeaderBoard() {
@@ -104,7 +165,9 @@ public class GameState {
     public ArrayList<Player> getPlayers() {return this.players;}
 
     public void reveal(int x, int y) {
+
         this.board.reveal(y, x);
+        this.sendReveal(x, y);
     }
 
     public boolean isColorAvailable(char c) {
@@ -124,4 +187,6 @@ public class GameState {
         this.board = new Board();
         return board.displayBoard();
     }
+
+    //TODO: Wei
 }

@@ -147,5 +147,6 @@ public class OurSweeper extends ApplicationAdapter {
 		stage.dispose();
         playTexture.dispose();
         backgroundImg.dispose();
+        gameState.leave();
 	}
 }
