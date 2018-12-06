@@ -6,8 +6,8 @@ public class Player implements Comparable<Player>{
     private int score;
     private boolean isReady;
 
-    public Player(String name, char color) {
-        this.color = color;
+    public Player(String name) {
+        this.color = ' ';
         this.name = name;
         this.score = 0;
         this.isReady = false;
@@ -16,6 +16,7 @@ public class Player implements Comparable<Player>{
     public char getColor() {
         return color;
     }
+    public void setColor(char c) {this.color = c;}
     public String getName() {
         return name;
     }

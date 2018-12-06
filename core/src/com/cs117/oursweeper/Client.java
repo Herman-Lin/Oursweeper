@@ -1,44 +1,122 @@
 package com.cs117.oursweeper;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.io.IOException;
-import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
-public class Client {
-    protected Socket client;
-    protected BufferedReader in;
-    protected BufferedWriter out;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-    public Client(String hostName, int ip) {
-        try {
-            this.client = new Socket(hostName, ip);
-            this.in = new BufferedReader(new InputStreamReader(
-                    this.client.getInputStream()));
-            this.out = new BufferedWriter(new OutputStreamWriter(
-                    this.client.getOutputStream()));
-            String buffer = null;
-            while ((buffer = in.readLine()) != null) {
-                // Debug purpose - remove later
-                System.out.println(buffer);
+public class Client extends Thread{
+    Socket socket;
+    BlockingQueue<String> queue;
+
+    public Client(Socket clientSocket) {
+        this.socket = clientSocket;
+        this.queue = new LinkedBlockingQueue<String>();
+    }
+
+    public void run() {
+        BufferedReader inReader = null;
+        PrintWriter outWrite = null;
+            try {
+                inReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                outWrite = new PrintWriter(socket.getOutputStream(), true);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
             }
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
-    public void write(String s) {
-        try {
-            out.write(s);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+            String line;
+            String boardString;
+            JSONObject clientData = null;
+            while (true) {
+                if (GameState.getGameStateInstance().clientConnection == null) {
+                    GameState.getGameStateInstance().clientConnection = this;
+                }
+
+                try {
+                    if (inReader.ready()) {
+                    if ((line = inReader.readLine()) != null) {
+                        try {
+                            line = line.replace("\\u0000", "");
+                            clientData = new JSONObject(line);
+                        } catch (Exception e) {e.printStackTrace();}
+                        System.out.println(line);
+                            try {
+                                if (clientData.get("Action").equals("Board")) {
+                                    boardString = clientData.getString("Board");
+                                    Board gameBoard = new Board(boardString);
+                                    GameState.getGameStateInstance().setBoard(gameBoard);
+                                    GameState.getGameStateInstance().goGameRoom();
+                                } else if (clientData.get("Action").equals("flag")) {
+                                    GameState.getGameStateInstance().flag(clientData.getString("ID"),
+                                            clientData.getInt("x"),
+                                            clientData.getInt("y"));
+                                } else if (clientData.get("Action").equals("reveal")) {
+                                    GameState.getGameStateInstance().reveal(clientData.getString("ID"),
+                                            clientData.getInt("x"),
+                                            clientData.getInt("y"));
+                                } else if (clientData.get("Action").equals("EnterRoom")) {
+                                    String playerName = (String) clientData.get("ID");
+                                    GameState.getGameStateInstance().addPlayer(playerName);
+                                    GameState.getGameStateInstance().setUpdated();
+                                } else if (clientData.get("Action").equals("Color")) {
+                                    String playerName = (String) clientData.get("ID");
+                                    String playerColor = (String) clientData.get("Color");
+                                    GameState.getGameStateInstance().setColor(playerName, playerColor.charAt(0));
+                                    GameState.getGameStateInstance().setUpdated();
+                                } else if (clientData.get("Action").equals("Ready")) {
+                                    String playerName = (String) clientData.get("ID");
+                                    GameState.getGameStateInstance().setReady(playerName);
+                                } else if (clientData.get("Action").equals("LeaveRoom")) {
+                                    String playerName = (String) clientData.get("ID");
+                                    GameState.getGameStateInstance().removePlayer(playerName);
+                                    GameState.getGameStateInstance().setUpdated();
+                                    if (GameState.getGameStateInstance().players.size() == 1) {
+                                        GameState.getGameStateInstance().setGameMaster(true);
+                                    }
+                                } else if (clientData.get("Action").equals("RoomInfo")) {
+                                    JSONArray jarr = clientData.getJSONArray("Players");
+                                    String color;
+                                    String name;
+                                    GameState.getGameStateInstance().players = new ArrayList<Player>();
+                                    for (int i = 0; i < jarr.length(); i++) {
+                                        name = jarr.getJSONObject(i).getString("Name");
+                                        GameState.getGameStateInstance().addPlayer(name);
+                                        color = jarr.getJSONObject(i).getString("Color");
+                                        GameState.getGameStateInstance().setColor(name, color.charAt(0));
+                                    }
+                                    if (GameState.getGameStateInstance().players.size() == 1) {
+                                        GameState.getGameStateInstance().setGameMaster(true);
+                                    }
+                                    GameState.getGameStateInstance().setUpdated();
+                                } else {
+                                    System.out.println(clientData.get("Action"));
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+
+                    }
+                    }
+                    else {
+                        String msg;
+                        while (((msg = queue.poll()) != null)) {
+                            System.out.println("Sent: " + msg);
+                            outWrite.println(msg);
+                            outWrite.flush();
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-    }
 }
